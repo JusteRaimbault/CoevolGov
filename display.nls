@@ -46,16 +46,17 @@ to display:display-network
       ;ask links [set thickness relative-speed / ((1 + network-reinforcment-gmax) ^ final-time-step)]
       ;ask links [set hidden? false] ask paths with [path-length < effective-length] [set hidden? true]
       ; ! relative-speed is a pace
-      let mi min [ln (1 / path:pace)] of links let ma max [ln (1 / path:pace)] of links
+      let mi min [ln (path:length / path:travel-time)] of links let ma max [ln (path:length / path:travel-time)] of links
       ;ask links [set thickness 4 * ((ln relative-speed) - mi) / (ma - mi) ]
       ifelse mi < ma [
          ; hardcoded link width is hardcore
         let maxthickness 5.0 
-        ask paths [set thickness maxthickness * ((ln (1 / path:pace)) - mi) / (ma - mi) ]
+        ask paths [set thickness maxthickness * ((ln (path:length / path:travel-time)) - mi) / (ma - mi) ]
       ][
         ask paths [set thickness 0]
       ]
     ]
+  
     if global:link-display-var = "flow" or global:link-display-var = "national-flow" or global:link-display-var = "international-flow" [
       ask paths [
         if global:link-display-var = "flow" [set path:tmp-flow path:flow] if global:link-display-var = "national-flow" [set path:tmp-flow path:national-flow] if global:link-display-var = "international-flow" [set path:tmp-flow path:international-flow]

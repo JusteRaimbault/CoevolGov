@@ -9,9 +9,9 @@ __includes [
    ;;;
    ; main
    "main.nls"
-
    "cities.nls"
    "network.nls"
+   "governance.nls"
 
    ;;;
    ; indicators
@@ -100,6 +100,10 @@ globals [
 
   global:pair-paths-hidden?
 
+  ;;
+  ; governance
+  global:governance-cost-to-access
+
   ; network measures
   global:shortest-paths
   global:nw-speeds
@@ -175,11 +179,9 @@ undirected-link-breed [paths path]
 
 paths-own [
 
-  ;impedance
-  ;speed ; effective weight
-  path:pace ; time per unit of distance
+  ;travel time
   path:travel-time
-  path:initial-pace ; used to reset
+  ;path:initial-pace ; used in case of real setup
 
   path:country
 
@@ -437,10 +439,10 @@ NIL
 SLIDER
 19
 170
-213
+320
 203
-global:international-decay
-global:international-decay
+global:gravity-international-flows-ratio
+global:gravity-international-flows-ratio
 0
 1
 0.95

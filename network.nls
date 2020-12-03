@@ -36,13 +36,25 @@ end
 to network:grow-physical-network
   
   let previous-accessibilities map [i -> cities:accessibilities cities with [city:country = i]] global:countries
-  show (word "Avg access by country = " map mean previous-accessibilities)
+  ;show (word "Avg access by country = " map mean previous-accessibilities)
+  let previous-config network:save-config ; updates are done on flows: these must be computed after pop update: here only once to restore
   
-  let national-investment network:estimate-investment true
-  let international-investment network:estimate-investment false
+  ; estimate national and international investments
+  let national-investment network:estimate-investment true previous-config
+  let international-investment network:estimate-investment false previous-config
   
- 
-  network:update-nw-measures network:compute-nw-measures
+  ; estimate collab probas
+  let probas governance:collaboration-probas national-investment international-investment
+  
+  ; draw outcome: generic in any number of countries? if more than two, may have bilateral collaborations => return a country matrix - fully international iff ones only in the matrix
+  ; 2/2: not a tensor (only choice national/inter, not between neighbors)
+  let collaboration-matrix governance:collaboration-matrix probas
+  
+  ifelse matrix:sum collaboration-matrix = (length global:countries * length global:countries) [
+    network:restore-config (item 2 international-investment)
+  ][
+    network:restore-config (item 2 national-investment)
+  ]
   
   show (word "Avg travel time = " mean [path:travel-time] of paths)
   
@@ -53,22 +65,30 @@ end
 ; estimate accessibility gains and costs for a given investment
 ; choice is: national/international (boolean local?)
 ;
+; Note: we use the fact that the setup is simple and national flows do not traverse the other country to not distinguish local flows by country and run this once on a single variable
+;   -> for more complicated/realistic settings the model must be refactored with a list as national-flow
+;
 ; * update travel times with according flows and get cost
 ;     * compute new network measures
 ;     * compute new accessibilities
 ;     * compute accessibility gain
 ;     * restore previous travel time
-to-report network:estimate-investment [local?]
+;
+; returns new-accessibilities linkcosts newconfig:so that can be applied without recomputing
+to-report network:estimate-investment [local? savedconfig]
   ; update travel times with given investment
-  let updatedres network:update-links-travel-time local?
-  let previous-travel-times item 0 updatedres let linkcosts item 1 updatedres
+  let linkcosts network:update-links-travel-time local?
+  let newconfig network:save-config
+  let measures item 1 newconfig
   ;update network measures
-  network:update-nw-measures network:compute-nw-measures
+  network:update-nw-measures measures
   ;compute new access
   let new-accessibilities map [i -> cities:accessibilities cities with [city:country = i]] global:countries
   ; -> return new access only - avoids additional arg or recomputing previous accessibilities
   
+  network:restore-config savedconfig
   
+  report (list new-accessibilities linkcosts newconfig)
 end
 
 ;;
@@ -80,7 +100,7 @@ end
 ;
 ; rq: given simple setup, national flows are only inside the country - can use national without distinguishing - cost can be computed after given cost of each link upgrade
 ; 
-; report (table of previous travel times, upgrade costs)
+; report upgrade costs by links
 to-report network:update-links-travel-time [local-flows?]
   ; evolve speeds (i.e. impedances) following a slime mould heuristic
   ;  flows already computed in population (for feedbak if needed)
@@ -88,40 +108,46 @@ to-report network:update-links-travel-time [local-flows?]
   ; thresholded link growth as a function of flow
   ask paths [ifelse local-flows? [set path:tmp-flow path:national-flow][set path:tmp-flow path:international-flow]]
   
-  let previous-travel-times table:make
   let link-upgrade-costs table:make
   
   set global:network-reinforcment-threshold quantile [path:tmp-flow] of paths with [path:tmp-flow > 0] global:network-reinforcment-quantile
   
   ask paths [
-    ; first record previous travel time
-    let ptime path:travel-time
+    let previous-time path:travel-time
     let key (word [who] of end1 [who] of end2)
-    table:put previous-travel-times key ptime
     
     ; change time only if improvment, i.e. if flow strictly larger than threshold
     ; bounded function allows to have max speed increase parameter
     if path:tmp-flow > global:network-reinforcment-threshold [
       set path:travel-time path:travel-time * (1 + (global:network-reinforcment-gmax * (global:network-reinforcment-threshold ^ global:network-reinforcment-exponent - path:tmp-flow ^ global:network-reinforcment-exponent) / (global:network-reinforcment-threshold ^ global:network-reinforcment-exponent + path:tmp-flow ^ global:network-reinforcment-exponent)))
-      set path:pace path:travel-time / path:length
+      ;set path:pace path:travel-time / path:length
     ]
     
     ifelse path:tmp-flow > global:network-reinforcment-threshold [
-      table:put link-upgrade-costs key (ptime * path:length / path:travel-time) 
+      table:put link-upgrade-costs key (previous-time * path:length / path:travel-time) 
     ][table:put link-upgrade-costs key 0]; note: do not include non-upgraded paths: changing threshold quantile param should then lead to different levels of collaboration
   ]
-  report (list previous-travel-times link-upgrade-costs)
+  report link-upgrade-costs
 end
 
 ;;
 ; given a table of previous travel time, restore it
-; need to 
 to network:restore-config [config]
-  
+  let previous-travel-times item 0 config
+  ask paths [set path:travel-time table:get previous-travel-times (word [who] of end1 [who] of end2)]
+  network:update-nw-measures (item 1 config)
 end
 
+;;
+; save a network config and measures - avoid recomputing
+; reports: (traveltimes,measures)
 to-report network:save-config
-  
+  let previous-travel-times table:make
+  ask paths [
+    table:put previous-travel-times (word [who] of end1 [who] of end2) path:travel-time
+  ]
+  let measures network:compute-nw-measures
+  report (list previous-travel-times measures)
 end
 
 
@@ -271,12 +297,18 @@ end
 
 to path:new-path
   set path:length link-length 
-  ifelse path:initial-pace = 0 [
-    set path:pace 1
-  ][
-    set path:pace path:initial-pace
-  ]
-  set path:travel-time path:length * path:pace
+  
+  
+  ;ifelse path:initial-pace = 0 [
+  ;  ;set path:pace 1
+  ;  set path:travel-time path:length
+  ;][ ; in case of a real network
+  ;  ;set path:pace path:initial-pace
+  ;  set path:travel-time path:length * path:initial-pace
+  ;]
+  
+  set path:travel-time path:length
+  
   set path:flow 0
   set hidden? false
   let x ([xcor] of end1 + [xcor] of end2) / 2 ;let y ([ycor] of end1 + [ycor] of end2) / 2

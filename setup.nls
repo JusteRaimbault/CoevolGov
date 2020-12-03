@@ -192,7 +192,7 @@ to setup:setup-matrices
   set global:country-decay-matrix matrix:make-constant n n 0
   ask cities [
     let i city:index let ci city:country ask cities [let j city:index let cj city:country ifelse ci = cj 
-    [matrix:set global:country-decay-matrix i j 1][matrix:set global:country-decay-matrix i j global:international-decay]]
+    [matrix:set global:country-decay-matrix i j 1][matrix:set global:country-decay-matrix i j global:gravity-international-flows-ratio]]
   ]
   show (word "country decay avg = " matrix:mean global:country-decay-matrix)
   

@@ -1,0 +1,32 @@
+
+
+;;
+; investment is [new-accessibilities linkcosts newconfig] where new-accessibilities is list per country
+; returns a list of probas for countries
+;
+; Formula is p_{1-i} = collab-cost / ((Delta Z(inter)_i - Delta Z(nat)_i) - cost-to-access (C(inter)_i))
+;  the Delta Delta can be replaced by Z(inter) - Z(nat) (same access before); for costs no Delta
+;  collab-cost and cost-to-access parameters are not practical -> use "rescaled parameters" such that
+;   - for cost-to-access, for the average of countries and the first time step, the ratio between the two denominator term are controlled (relative proportions in the cost-benefits aggregation)
+;   - for collab-cost, given cost-to-access, for one country (for example with the largest proba?) the proba is fixed, so collab-cost = pproba x (DDZ - cost-to-access DDC), then recompute other probas
+to-report governance:collaboration-probas [national-investment international-investment]
+  let nat-access item 0 national-investment let internat-access item 0 international-investment
+  let nat-costs item 1 national-investment let internat-costs item 1 international-investment
+  let natcostslist utils:list:rep [] length global:countries let internatcostslist utils:list:rep [] length global:countries
+  ask paths [; transform link cost table into same format as access
+    let natcost table:get nat-costs (word [who] of end1 [who] of end2) let internatcost table:get internat-costs (word [who] of end1 [who] of end2)
+    let countryind position path:country global:countries
+    set natcostslist replace-item countryind natcostslist (lput natcost (item countryind natcostslist))
+    set internatcostslist replace-item countryind internatcostslist (lput internatcost (item countryind internatcostslist))
+  ]
+  let accessdiffs [] (foreach nat-access internat-access [ [nat internat] -> set accessdiffs lput (sum internat - sum nat) accessdiffs])
+  let costdiffs [] (foreach natcostslist internatcostslist [ [nat internat] -> set costdiffs lput (sum internat - sum nat) costdiffs]) ; accesses contructed with a map on global:countries, consistent
+  let avgcostaccessratio (sum map abs accessdiffs) / (sum map abs costdiffs)
+  if global:governance-cost-to-access = -1 [set global:governance-cost-to-access global:governance-effective-cost-to-access avgcostaccessratio]
+  
+end
+
+to-report governance:collaboration-matrix [probas]
+  
+end
+
