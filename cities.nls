@@ -14,34 +14,18 @@ to cities:evolve-populations
   ; current time
   let t ticks
   let delta_t item t global:dates - item (t - 1) global:dates
-
-  ; previous populations as list
+  
+  let n item 0 matrix:dimensions global:populations
   let prev-populations matrix:get-column global:populations (t - 1)
-  let n length prev-populations
-
-  let diag-pops (matrix:make-diag prev-populations)
-  let diag-pops-gravity matrix:map [? -> ? ^ global:gravity-gamma] (matrix:times-scalar diag-pops sum prev-populations) ; ? should be 1 / sum prev-populations -> ok the term simplifies when normalized by mean-pot-gravity
-  let pots-gravity matrix:times diag-pops-gravity (matrix:times global:gravity-weights diag-pops-gravity)
-  ;show sum map sum matrix:to-row-list global:gravity-weights
-  matrix:set-diag-scalar pots-gravity 0
-  let mean-pot-gravity (matrix:sum pots-gravity) / (n * n)
-  if mean-pot-gravity = 0 [set mean-pot-gravity 1]
-  set pots-gravity matrix:times-scalar pots-gravity (1 / mean-pot-gravity)
-
-  ; add country effect - multiploer latrix is constant
-  set pots-gravity matrix:times-element-wise pots-gravity global:country-decay-matrix
   
   ; update gravity flows
-  set global:gravity-flows matrix:copy pots-gravity
+  set global:gravity-flows matrix:copy cities:gravity-flows prev-populations
 
-  ;  - cache nw measures
-  network:cache-nw-measures
-
-  ; update city pair flows (for viz)
-  network:update-pair-flows
+  ;  - cache nw measures? not needed here!
+  ;network:update-nw-measures network:compute-nw-measures  
 
   ;; current populations
-  let gravity-growth (matrix:times-scalar (matrix:times pots-gravity (matrix:make-constant n 1 1)) (global:gravity-weight / n))
+  let gravity-growth (matrix:times-scalar (matrix:times global:gravity-flows (matrix:make-constant n 1 1)) (global:gravity-weight / n))
   
   let r (matrix:times-scalar (matrix:times-element-wise (matrix:as-column-matrix prev-populations) ((matrix:make-constant n 1 global:growth-rate) matrix:+ gravity-growth)) delta_t)
   ;show matrix:max r show matrix:min r
@@ -53,9 +37,31 @@ to cities:evolve-populations
 
 
   ; update agent cities pop
-  update-cities-populations
+  cities:update-cities-populations
 
 
+end
+
+;;
+; compute the gravity flow matrix
+;  requires that gravity-weights have been set
+to-report cities:gravity-flows [prev-populations]
+  ; previous populations as list
+  let n length prev-populations
+  
+
+  let diag-pops (matrix:make-diag prev-populations)
+  let diag-pops-gravity matrix:map [? -> ? ^ global:gravity-gamma] (matrix:times-scalar diag-pops sum prev-populations) ; ? should be 1 / sum prev-populations -> ok the term simplifies when normalized by mean-pot-gravity
+  ;show sum map sum matrix:to-row-list global:gravity-weights show diag-pops-gravity
+  let pots-gravity matrix:times diag-pops-gravity (matrix:times global:gravity-weights diag-pops-gravity)
+  matrix:set-diag-scalar pots-gravity 0
+  let mean-pot-gravity (matrix:sum pots-gravity) / (n * n)
+  if mean-pot-gravity = 0 [set mean-pot-gravity 1]
+  set pots-gravity matrix:times-scalar pots-gravity (1 / mean-pot-gravity)
+
+  ; add country effect - multiplier matrix is constant: gravity potential are reduced by a fixed factors for pairs not in the same country
+  set pots-gravity matrix:times-element-wise pots-gravity global:country-decay-matrix
+  report pots-gravity
 end
 
 
@@ -92,7 +98,9 @@ to-report cities:zero-infinite [x]
 end
 
 
-to cities:update-weights
+;;
+; update gravity weights when the distance matrix has changed
+to cities:update-gravity-weights
   ;; weights
   set global:gravity-weights matrix:map [? -> exp (- ? / global:gravity-decay)] global:distance-matrix
 
@@ -101,14 +109,15 @@ end
 
 
 
-
-to update-cities-populations
+;;
+; update agent populations according to the population matrix
+to cities:update-cities-populations
   ask cities [
     set city:population matrix:get global:populations city:index ticks
     ; update histories
     set city:population-history lput city:population city:population-history
-    set city:expected-population-history lput matrix:get global:real-populations city:index ticks city:expected-population-history
-    set city:current-mse city-mse ticks
+    ;set city:expected-population-history lput matrix:get global:real-populations city:index ticks city:expected-population-history ; no real application
+    ;set city:current-mse city-mse ticks
   ]
 end
 
@@ -123,10 +132,27 @@ to-report city:closeness-centrality
    report s / ((length d) - 1)
 end
 
-to-report city:accessibility
+to-report city:accessibility [origin-weighted?]
   let d matrix:get-row global:distance-matrix city:index
   let pops replace-item city:index (matrix:get-column global:populations ticks) 0
-  report sum utils:list:times-element-wise pops (map [? -> exp (- ? / global:gravity-decay)] d)
+  let res sum utils:list:times-element-wise pops (map [? -> exp (- ? / global:gravity-decay)] d)
+  if origin-weighted? [set res res * city:population]
+  report res
+end
+
+;;
+; acessibilities for an agentset of given cities - weighted by origin and with country effect
+to-report cities:accessibilities [cityagentset]
+  let rowinds [city:index] of cityagentset let colinds (utils:list:seq 0 (item 1 matrix:dimensions global:distance-matrix - 1) 1)
+  ;show (utils:list:seq 0 (item 1 matrix:dimensions global:distance-matrix - 1) 1)
+  let d matrix:map [? -> exp (- ? / global:gravity-decay)] matrix:sparse-submatrix global:distance-matrix rowinds colinds 
+  foreach (utils:list:seq 0 (count cityagentset - 1) 1) [i -> matrix:set d i i 0]
+  set d matrix:times-element-wise d (matrix:sparse-submatrix global:country-decay-matrix rowinds colinds)
+  show map mean matrix:to-row-list d
+  let pops matrix:submatrix global:populations 0 ticks (count cities) (ticks + 1)
+  let selpops matrix:sparse-submatrix global:populations rowinds (list ticks)
+  show selpops
+  report item 0 matrix:to-column-list matrix:times-element-wise selpops (matrix:times d pops)
 end
 
 
@@ -141,18 +167,6 @@ to city:new-city
   ifelse xcor < min-pxcor + (max-pxcor - min-pxcor) / 2 [set city:country 0][set city:country 1]
 end
 
-;;
-; city procedure that can be used by any turtle (network nodes in particular)
-to turtle:set-coords-l93 [x y]
-  ;setxy random-xcor random-ycor
-
-  ; conversion lambert93 -> world coordinates - LAMBERT II ?
-  ;  100000 1100000 6125000 7120000
-  let l93xmin 825 let l93xmax 10200 let l93ymin 16700 let l93ymax 27000
-  let xx min-pxcor + ((max-pxcor - min-pxcor) * (x - l93xmin) / (l93xmax - l93xmin))
-  let yy min-pycor + ((max-pycor - min-pycor) * (y - l93ymin) / (l93ymax - l93ymin))
-  setxy (min list (max list min-pxcor xx) max-pxcor) (min list (max list min-pycor yy) max-pycor)
-end
 
 
 

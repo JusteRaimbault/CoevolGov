@@ -56,9 +56,12 @@ to display:display-network
         ask paths [set thickness 0]
       ]
     ]
-    if global:link-display-var = "flow" [
-      ask paths [set thickness 25 * ln (1 + path:flow)]
-      if ticks > 0 [ask paths [set hidden? false] ask paths with [path:flow = 0] [set hidden? true]]
+    if global:link-display-var = "flow" or global:link-display-var = "national-flow" or global:link-display-var = "international-flow" [
+      ask paths [
+        if global:link-display-var = "flow" [set path:tmp-flow path:flow] if global:link-display-var = "national-flow" [set path:tmp-flow path:national-flow] if global:link-display-var = "international-flow" [set path:tmp-flow path:international-flow]
+        set thickness 25 * ln (1 + path:tmp-flow)
+      ]
+      if ticks > 0 [ask paths [set hidden? false] ask paths with [path:tmp-flow = 0] [set hidden? true]]
     ]
   
   let m quantile [pair-path:flow] of pair-paths 0.8

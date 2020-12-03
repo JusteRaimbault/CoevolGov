@@ -11,7 +11,7 @@ to go-full-period
     if ticks > 0 [setup:reset]
   ]
   
-  repeat (length matrix:get-row global:real-populations 0) - 1 [
+  repeat (length matrix:get-row global:populations 0) - 1 [
     go
   ]
   

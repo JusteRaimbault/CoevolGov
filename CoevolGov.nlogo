@@ -62,7 +62,7 @@ globals [
 
   ;;
   ; corresponding real populations
-  global:real-populations
+  ;global:real-populations
 
   ;;
   ; distance matrices
@@ -73,8 +73,8 @@ globals [
   global:distance-matrices
 
   ; real distance matrices (real network)
-  global:real-distance-matrices
-  global:real-feedback-distance-matrices
+  ;global:real-distance-matrices
+  ;global:real-feedback-distance-matrices
 
   global:gravity-weights
   global:feedback-weights
@@ -91,11 +91,12 @@ globals [
 
   ;;
   ; network growth
-  global:slime-mould-node-distance
-  ;slime-mould-reinforcment-function
-  global:slime-mould-link-deletion-proportion
+  global:network-setup-node-distance
+  global:network-setup-link-deletion-proportion
 
-  global:physical-network-reinforcment-threshold
+  global:network-reinforcment-threshold
+
+  global:countries
 
   global:pair-paths-hidden?
 
@@ -180,10 +181,17 @@ paths-own [
   path:travel-time
   path:initial-pace ; used to reset
 
+  path:country
+
   ; geographical length
   path:length
   path:bw-centrality
+
+  ; flows: distinguish between national and international
   path:flow
+  path:national-flow
+  path:international-flow
+  path:tmp-flow
 
 
 ]
@@ -320,10 +328,10 @@ NIL
 1
 
 SLIDER
-15
-229
-174
-262
+18
+337
+177
+370
 global:final-time-step
 global:final-time-step
 0
@@ -371,25 +379,25 @@ PENS
 "pen-2" 1.0 0 -2674135 true "" "plot first matrix:min matrix:map cities:zero-infinite global:distance-matrix"
 
 SWITCH
-15
-336
-236
-369
+20
+510
+241
+543
 global:show-virtual-flows?
 global:show-virtual-flows?
-0
+1
 1
 -1000
 
 CHOOSER
-16
-281
-181
-326
+21
+455
+186
+500
 global:link-display-var
 global:link-display-var
-"speed" "flow"
-1
+"flow" "national-flow" "international-flow" "speed"
+0
 
 PLOT
 964
@@ -410,10 +418,10 @@ PENS
 "default" 1.0 0 -16777216 true "" ""
 
 BUTTON
-26
-398
-160
-431
+31
+572
+165
+605
 toggle pair flows
 network:toggle-pair-flows
 NIL
@@ -435,11 +443,80 @@ global:international-decay
 global:international-decay
 0
 1
-0.75
+0.95
 0.05
 1
 NIL
 HORIZONTAL
+
+SLIDER
+19
+207
+274
+240
+global:network-reinforcment-quantile
+global:network-reinforcment-quantile
+0
+1
+0.5
+0.05
+1
+NIL
+HORIZONTAL
+
+SLIDER
+19
+242
+274
+275
+global:network-reinforcment-gmax
+global:network-reinforcment-gmax
+0
+0.5
+0.05
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+19
+277
+274
+310
+global:network-reinforcment-exponent
+global:network-reinforcment-exponent
+0
+10
+1.0
+0.1
+1
+NIL
+HORIZONTAL
+
+OUTPUT
+953
+368
+1395
+575
+11
+
+BUTTON
+206
+463
+302
+496
+update display
+display:update-display
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?

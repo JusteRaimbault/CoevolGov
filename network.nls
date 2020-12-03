@@ -6,18 +6,18 @@
 to network:evolve-network
   
       
-    ; grow the network
-    network:grow-physical-network
-     
-    ; update distance matrices
-    network:update-distance-matrices
+  ; grow the network
+  network:grow-physical-network
   
-    ; put distance matrix in history
-    ;show (word "avg distmat = " (mean (map mean matrix:to-row-list distance-matrix)))
-    table:put global:distance-matrices (item ticks global:dates) matrix:copy global:distance-matrix
+  ; put distance matrix in history
+  ;show (word "avg distmat = " (mean (map mean matrix:to-row-list distance-matrix)))
+  table:put global:distance-matrices (item ticks global:dates) matrix:copy global:distance-matrix
     
-    ; update interaction weights
-    cities:update-weights
+  ; update interaction weights: ok done in network growth after updating nw measures
+  ;cities:update-weights
+  
+  ; update city pair flows (for viz)
+  network:update-pair-flows
     
   
 end
@@ -26,42 +26,104 @@ end
 
 
 ;;
-; grow physical network
+; grow physical network: evolve link speeds following investments by governments
+;
+;  - for each nation and the international level: estimate access gains and costs of investment
+;  - compute payoff matrix and collaboration probabilities
+;  - draw collaboration status
+;  - update travel times accordingly and network
+;    Q: if NC/C, local improves only? yes, would not make sense to have one side investing only (find regimes whith relatively high probas of collab?)
 to network:grow-physical-network
   
-    ; evolve speeds (i.e. impedances) following a slime mould heuristic
-    ;  flows already computed in population (for feedbak if needed)
-    ; no new links in this heuristic
-    
-    ;; thresholded link growth as a function of flow
-    ;if global:slime-mould-reinforcment-function = "thresholded" [
-    ;  set global:network-reinforcment-threshold quantile [path:flow] of links with [path:flow > 0] global:network-reinforcment-quantile
-    ;
-    ;  ask paths [
-    ;    set path:travel-time path:travel-time * (1 + (global:network-reinforcment-gmax * (global:network-reinforcment-threshold ^ global:network-reinforcment-exponent - path:flow ^ global:network-reinforcment-exponent) / (global:network-reinforcment-threshold ^ global:network-reinforcment-exponent + path:flow ^ global:network-reinforcment-exponent)))
-    ;    set path:pace path:travel-time / path:length
-    ;  ]
-    ;]
+  let previous-accessibilities map [i -> cities:accessibilities cities with [city:country = i]] global:countries
+  show (word "Avg access by country = " map mean previous-accessibilities)
   
-  ;;
-  ; evolve link speeds following investments by governments
-    
+  let national-investment network:estimate-investment true
+  let international-investment network:estimate-investment false
+  
  
+  network:update-nw-measures network:compute-nw-measures
+  
+  show (word "Avg travel time = " mean [path:travel-time] of paths)
+  
   
 end
 
-
-to network:update-distance-matrices
-  ; recompute nw measures (needed twice)
-  network:cache-nw-measures
+;;
+; estimate accessibility gains and costs for a given investment
+; choice is: national/international (boolean local?)
+;
+; * update travel times with according flows and get cost
+;     * compute new network measures
+;     * compute new accessibilities
+;     * compute accessibility gain
+;     * restore previous travel time
+to-report network:estimate-investment [local?]
+  ; update travel times with given investment
+  let updatedres network:update-links-travel-time local?
+  let previous-travel-times item 0 updatedres let linkcosts item 1 updatedres
+  ;update network measures
+  network:update-nw-measures network:compute-nw-measures
+  ;compute new access
+  let new-accessibilities map [i -> cities:accessibilities cities with [city:country = i]] global:countries
+  ; -> return new access only - avoids additional arg or recomputing previous accessibilities
   
-  ask cities [
-    ask other cities [
-      ; FIXME this is just a copy of the distance matric - could directly use travel time matrix ? - unconvenient dual implementation
-      matrix:set global:distance-matrix city:index [city:index] of myself (table:get global:nw-travel-times (list city:index [city:index] of myself))
+  
+end
+
+;;
+; update travel time of links (self-reinforcment heuristic), returns previous times so that they can be applied again
+;  remark: mix of mutable/immutable is not good/easy to deal with
+;
+; use flow variable provided: local if true (only two cases): rq: could have a multilevel model, take into account different scales
+; total flow is used for some indicators? keep it consistent in case, use tmp-flow variable
+;
+; rq: given simple setup, national flows are only inside the country - can use national without distinguishing - cost can be computed after given cost of each link upgrade
+; 
+; report (table of previous travel times, upgrade costs)
+to-report network:update-links-travel-time [local-flows?]
+  ; evolve speeds (i.e. impedances) following a slime mould heuristic
+  ;  flows already computed in population (for feedbak if needed)
+  ; no new links in this heuristic
+  ; thresholded link growth as a function of flow
+  ask paths [ifelse local-flows? [set path:tmp-flow path:national-flow][set path:tmp-flow path:international-flow]]
+  
+  let previous-travel-times table:make
+  let link-upgrade-costs table:make
+  
+  set global:network-reinforcment-threshold quantile [path:tmp-flow] of paths with [path:tmp-flow > 0] global:network-reinforcment-quantile
+  
+  ask paths [
+    ; first record previous travel time
+    let ptime path:travel-time
+    let key (word [who] of end1 [who] of end2)
+    table:put previous-travel-times key ptime
+    
+    ; change time only if improvment, i.e. if flow strictly larger than threshold
+    ; bounded function allows to have max speed increase parameter
+    if path:tmp-flow > global:network-reinforcment-threshold [
+      set path:travel-time path:travel-time * (1 + (global:network-reinforcment-gmax * (global:network-reinforcment-threshold ^ global:network-reinforcment-exponent - path:tmp-flow ^ global:network-reinforcment-exponent) / (global:network-reinforcment-threshold ^ global:network-reinforcment-exponent + path:tmp-flow ^ global:network-reinforcment-exponent)))
+      set path:pace path:travel-time / path:length
     ]
+    
+    ifelse path:tmp-flow > global:network-reinforcment-threshold [
+      table:put link-upgrade-costs key (ptime * path:length / path:travel-time) 
+    ][table:put link-upgrade-costs key 0]; note: do not include non-upgraded paths: changing threshold quantile param should then lead to different levels of collaboration
   ]
+  report (list previous-travel-times link-upgrade-costs)
 end
+
+;;
+; given a table of previous travel time, restore it
+; need to 
+to network:restore-config [config]
+  
+end
+
+to-report network:save-config
+  
+end
+
 
 
 
@@ -76,21 +138,58 @@ end
 ; show/hide direct flow links
 to network:toggle-pair-flows
   set global:pair-paths-hidden? not global:pair-paths-hidden?
+  display:update-display
 end
 
 
-;; 
-;  network indicators
-to network:cache-nw-measures
+;;
+;  network indicators: apply a computed configuration of network measures
+;  ~ caching shortest paths and measures, computed as a config before
+; Config is a list as: [path-flows: Table[Int,Double], ...]
+;  path-bw-centralities path-flows city-bw-centralities city-flows shortest-paths nw-speeds nw-travel-times nw-detours pairs-total-weight
+;
+; this function also updates nw distance matrices AND gravity weights
+to network:update-nw-measures [config]
   
-  ; caching shortest paths and measures
-  nw:set-context turtles paths
-  ask paths [
-    set path:bw-centrality 0
-    set path:flow 0
+  let path-bw-centralities (item 0 config) let path-flows (item 1 config) let path-national-flows (item 2 config) let path-international-flows (item 3 config)
+  let city-bw-centralities (item 4 config) let city-flows (item 5 config)
+  ;show path-flows
+  ask paths [let key (word [who] of end1 [who] of end2) set path:bw-centrality (table:get path-bw-centralities key) set path:flow (table:get path-flows key)
+    set path:national-flow (table:get path-national-flows key) set path:international-flow (table:get path-international-flows key)
   ]
-  ask cities [set city:bw-centrality 0 set city:flow 0]
-  set global:shortest-paths table:make set global:nw-speeds table:make set global:nw-travel-times table:make set global:nw-detours table:make set global:pairs-total-weight 0
+  ask cities [set city:bw-centrality (table:get city-bw-centralities who) set city:flow (table:get city-flows who)]
+  
+  set global:shortest-paths (item 6 config) set global:nw-speeds (item 7 config) set global:nw-travel-times (item 8 config) set global:nw-detours (item 9 config) set global:pairs-total-weight (item 10 config)
+  
+  ask cities [
+    ask other cities [
+      matrix:set global:distance-matrix city:index [city:index] of myself (table:get global:nw-travel-times (list city:index [city:index] of myself))
+    ]
+  ]
+  cities:update-gravity-weights
+  
+end
+  
+;;
+; Measures
+;
+;  report path-bw-centralities path-flows city-bw-centralities city-flows shortest-paths nw-speeds nw-travel-times nw-detours pairs-total-weight
+to-report network:compute-nw-measures
+  
+  nw:set-context turtles paths
+  
+  let path-flows table:make let path-national-flows table:make let path-international-flows table:make let path-bw-centralities table:make let city-bw-centralities table:make let city-flows table:make
+  ask paths [
+    let key (word [who] of end1 [who] of end2)
+    table:put path-bw-centralities key 0 table:put path-flows key 0 table:put path-national-flows key 0 table:put path-international-flows key 0 
+  ]
+  ask cities [table:put city-bw-centralities who 0 table:put city-flows who 0]
+  ask nodes [table:put city-bw-centralities who 0 table:put city-flows who 0]
+  
+  let shortest-paths table:make let nw-speeds table:make let nw-travel-times table:make let nw-detours table:make let pairs-total-weight 0
+  
+  ;show (word "mean gravity flow = " mean map mean matrix:to-row-list global:gravity-flows)
+  
   let clist to-list cities let n count cities
   let i 0 let j 1
   let ltot 0
@@ -111,31 +210,42 @@ to network:cache-nw-measures
         ? -> ask ? [
           set t t + path:travel-time
           set l l + path:length
-          set path:bw-centrality path:bw-centrality + 1
-          set path:flow path:flow + (current-flow * 2 / (n * (n - 1)))
+          let key (word [who] of end1 [who] of end2)
+          table:put path-bw-centralities key ((table:get path-bw-centralities key)+ 1)
+          table:put path-flows key ((table:get path-flows key)+ (current-flow * 2 / (n * (n - 1))))
+          ifelse [city:country] of c1 = [city:country] of c2 [
+            table:put path-national-flows key ((table:get path-national-flows key)+ (current-flow * 2 / (n * (n - 1))))
+          ][
+           table:put path-international-flows key ((table:get path-international-flows key)+ (current-flow * 2 / (n * (n - 1))))
+          ] 
           ;set path:feedback-flow path:feedback-flow + (current-feedback-flow * 2 / (n * (n - 1))) ; disactivated
         ]
       ]
       ; update node betweeness
-      ;foreach tpath [ask ? [set city-bw-centrality city-bw-centrality + 1 set city-flow city-flow + (current-flow * 2 / (n * (n - 1)))]]
+      foreach tpath [? -> ask ? [
+        table:put city-bw-centralities who ((table:get city-bw-centralities who)+ 1)
+        table:put city-flows who ((table:get city-flows who)+ (current-flow * 2 / (n * (n - 1))))
+      ]]
       ; update shortest path table
-      table:put global:shortest-paths (list [city:index] of c1 [city:index] of c2) currentpath
-      table:put global:shortest-paths (list [city:index] of c2 [city:index] of c1) (rev currentpath)
+      table:put shortest-paths (list [city:index] of c1 [city:index] of c2) currentpath
+      table:put shortest-paths (list [city:index] of c2 [city:index] of c1) (rev currentpath)
       ; update nw distance table
-      table:put global:nw-travel-times (list [city:index] of c1 [city:index] of c2) t
-      table:put global:nw-travel-times (list [city:index] of c2 [city:index] of c1) t
+      table:put nw-travel-times (list [city:index] of c1 [city:index] of c2) t
+      table:put nw-travel-times (list [city:index] of c2 [city:index] of c1) t
       ; update relative speed table
       let deucl 0 ask c1 [set deucl distance c2]
-      table:put global:nw-speeds (list [city:index] of c1 [city:index] of c2) (deucl / t)
-      table:put global:nw-detours (list [city:index] of c1 [city:index] of c2) (deucl / l)
+      table:put nw-speeds (list [city:index] of c1 [city:index] of c2) (deucl / t)
+      table:put nw-detours (list [city:index] of c1 [city:index] of c2) (deucl / l)
       
-      set global:pairs-total-weight global:pairs-total-weight + [city:population] of c1 + [city:population] of c2
+      set pairs-total-weight pairs-total-weight + [city:population] of c1 + [city:population] of c2
       set j j + 1
       set ltot ltot + l
     ]
     set i i + 1
   ]
-  show (word "avg distance cities = " (2 * ltot / (n * (n - 1))))
+  ;show (word "avg distance cities = " (2 * ltot / (n * (n - 1))))
+  
+  report (list path-bw-centralities path-flows path-national-flows path-international-flows city-bw-centralities city-flows shortest-paths nw-speeds nw-travel-times nw-detours pairs-total-weight)
   
 end
 
@@ -169,6 +279,8 @@ to path:new-path
   set path:travel-time path:length * path:pace
   set path:flow 0
   set hidden? false
+  let x ([xcor] of end1 + [xcor] of end2) / 2 ;let y ([ycor] of end1 + [ycor] of end2) / 2
+  ifelse x < min-pxcor + (max-pxcor - min-pxcor) / 2 [set path:country 0][set path:country 1]
 end
 
 

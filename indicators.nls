@@ -48,7 +48,7 @@ to indicators:update-indicators
      ask ? [
        table:put global:city-values-table (list current-time "city-population" city:index) city:population
        table:put global:city-values-table (list current-time "city-closeness-centrality" city:index) city:closeness-centrality
-       table:put global:city-values-table (list current-time "city-accessibility" city:index) city:accessibility
+       table:put global:city-values-table (list current-time "city-accessibility" city:index) city:accessibility false
      ]
   ]
 end
@@ -604,37 +604,37 @@ end
 
 ;;
 ; log of total mean square error
-to-report log-mse-population
-ifelse global:failed? != true [
-    let mse (matrix:map [[?1 ?2] -> (?1 - ?2)^ 2] global:real-populations global:populations)
-  report ln sum (map sum (matrix:to-row-list mse))
-][report 1e100]
-end
+;to-report log-mse-population
+;ifelse global:failed? != true [
+;    let mse (matrix:map [[?1 ?2] -> (?1 - ?2)^ 2] global:real-populations global:populations)
+;  report ln sum (map sum (matrix:to-row-list mse))
+;][report 1e100]
+;end
 
 ;;
 ; mse on log of populations
-to-report mse-log-population
-ifelse global:failed? != true [
-    let mse (matrix:map [[?1 ?2] -> (ln ?1 - ln ?2)^ 2] global:real-populations global:populations)
-  report sum (map sum (matrix:to-row-list mse)) 
-][report 1e100]
-end
+;to-report mse-log-population
+;ifelse global:failed? != true [
+;    let mse (matrix:map [[?1 ?2] -> (ln ?1 - ln ?2)^ 2] global:real-populations global:populations)
+;  report sum (map sum (matrix:to-row-list mse)) 
+;][report 1e100]
+;end
 
 
 ;;
 ; log of total mse on distances
 ;  note : distances DO NOT follow a power law : no sense to do the mse-log
-to-report log-mse-distance
-  ifelse global:failed? != true [
-    let tot 0
-    foreach global:dates [? ->
-      let mse (matrix:map [[?1 ?2] -> (?1 - ?2)^ 2] (table:get global:real-distance-matrices ?) (table:get global:distance-matrices ?))
-      ;show sum (map sum (matrix:to-row-list mse))
-       set tot tot + sum (map sum (matrix:to-row-list mse))
-    ]
-    ifelse tot != 0 [report ln tot][report 0]
-  ][report 1e100]
-end
+;to-report log-mse-distance
+;  ifelse global:failed? != true [
+;    let tot 0
+;    foreach global:dates [? ->
+;      let mse (matrix:map [[?1 ?2] -> (?1 - ?2)^ 2] (table:get global:real-distance-matrices ?) (table:get global:distance-matrices ?))
+;      ;show sum (map sum (matrix:to-row-list mse))
+;       set tot tot + sum (map sum (matrix:to-row-list mse))
+;    ]
+;    ifelse tot != 0 [report ln tot][report 0]
+;  ][report 1e100]
+;end
 
 
 
@@ -648,20 +648,20 @@ end
 ;;
 ; current mse on past for a city
 ;   t <= current time
-to-report city-mse [t]
-  let tt 0
-  ifelse t > ticks [set tt ticks] [set tt t]
-  let d list:minus (sublist city:population-history 0 (tt + 1)) (sublist city:expected-population-history 0 (tt + 1))
-  report sum utils:list:times-element-wise d d
-end
+;to-report city-mse [t]
+;  let tt 0
+;  ifelse t > ticks [set tt ticks] [set tt t]
+;  let d list:minus (sublist city:population-history 0 (tt + 1)) (sublist city:expected-population-history 0 (tt + 1))
+;  report sum utils:list:times-element-wise d d
+;end
 
 ; idem
-to-report city-mse-log [t]
-  let tt 0
-  ifelse t > ticks [set tt ticks] [set tt t]
-  let d list:minus (sublist (map [? -> ln ?] city:population-history) 0 (tt + 1)) (sublist (map [? -> ln ?] city:expected-population-history) 0 (tt + 1))
-  report sum utils:list:times-element-wise d d
-end
+;to-report city-mse-log [t]
+;  let tt 0
+;  ifelse t > ticks [set tt ticks] [set tt t]
+;  let d list:minus (sublist (map [? -> ln ?] city:population-history) 0 (tt + 1)) (sublist (map [? -> ln ?] city:expected-population-history) 0 (tt + 1))
+;  report sum utils:list:times-element-wise d d
+;end
 
 
 
