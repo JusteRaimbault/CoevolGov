@@ -12,6 +12,7 @@ __includes [
 
    "cities.nls"
    "network.nls"
+   "governance.nls"
 
    ;;;
    ; indicators
@@ -115,10 +116,6 @@ globals [
 
   global:network-threshold-type
 
-  global:slime-mould-node-distance
-  global:slime-mould-reinforcment-function
-  global:slime-mould-link-deletion-proportion
-
   global:physical-network-heuristic
 
   global:link-display-var
@@ -126,6 +123,9 @@ globals [
   global:synthetic-shortcut-number
   global:synthetic-city-max-degree
   global:synthetic-shortcut-radius
+
+  global:network-setup-node-distance
+  global:network-setup-link-deletion-proportion
 
   global:shortest-paths
   global:nw-speeds
@@ -139,6 +139,32 @@ globals [
   global:failed?
 
   city-traj
+
+  global:indicators
+  global:pair-paths-hidden?
+
+  global:governance-cost-to-access
+  global:governance-collab-cost-set?
+
+  global:countries
+
+  global:country-decay-matrix
+
+  global:gravity-international-flows-ratio
+
+  global:governance-access-diffs
+  global:governance-cost-diffs
+  global:governance-probas
+  global:governance-collab
+  global:governance-level
+
+  global:network-mode
+
+  global:governance-param-scaling-mode
+  global:governance-effective-cost-to-access
+  global:governance-collab-cost
+  global:governance-effective-collab-proba
+
 
 ]
 
@@ -180,6 +206,10 @@ cities-own [
   city:bw-centrality
   city:flow
 
+  city:country
+
+
+
 ]
 
 
@@ -201,17 +231,29 @@ paths-own [
   path:initial-pace
   path:travel-time
 
+  path:tmp-flow
+  path:national-flow
+  path:international-flow
+
+  path:country
+
 ]
 
+
+undirected-link-breed [pair-paths pair-path]
+
+pair-paths-own [
+   pair-path:flow
+]
 @#$#@#$#@
 GRAPHICS-WINDOW
 294
 20
-905
-632
+904
+331
 -1
 -1
-3.0
+2.0
 1
 10
 1
@@ -221,10 +263,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--100
-100
--100
-100
+-150
+150
+-75
+75
 0
 0
 1
@@ -237,58 +279,7 @@ BUTTON
 222
 90
 NIL
-test-experiment-synthetic
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-26
-102
-193
-135
-NIL
-test-experiment-calib
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-26
-155
-278
-188
-NIL
-test-experiment-synthetic-physical
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-29
-207
-190
-240
-NIL
-test-experiment-pse
+test-experiment
 NIL
 1
 T
