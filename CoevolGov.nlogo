@@ -103,6 +103,15 @@ globals [
   ;;
   ; governance
   global:governance-cost-to-access
+  global:governance-collab-cost-set?
+  global:governance-collab-cost
+
+  ; governance reporters
+  global:governance-access-diffs
+  global:governance-cost-diffs
+  global:governance-probas
+  global:governance-collab
+  global:governance-level
 
   ; network measures
   global:shortest-paths
@@ -118,6 +127,8 @@ globals [
   global:indicator-sample-cities
   global:city-values-table
   global:indicator-sampling-time-step
+
+  global:indicators
 
 
   global:headless?
@@ -232,10 +243,10 @@ ticks
 30.0
 
 BUTTON
-14
-43
-73
-76
+12
+12
+71
+45
 setup
 setup:setup
 NIL
@@ -279,10 +290,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-74
-43
-140
-76
+12
+46
+71
+79
 reset
 setup:reset
 NIL
@@ -296,10 +307,10 @@ NIL
 1
 
 BUTTON
-212
-42
-306
-75
+78
+47
+163
+80
 go full period
 go-full-period
 NIL
@@ -313,10 +324,10 @@ NIL
 1
 
 BUTTON
-142
-42
-205
-75
+78
+12
+164
+45
 NIL
 go
 NIL
@@ -330,10 +341,10 @@ NIL
 1
 
 SLIDER
-18
-337
-177
-370
+20
+432
+179
+465
 global:final-time-step
 global:final-time-step
 0
@@ -382,9 +393,9 @@ PENS
 
 SWITCH
 20
-510
+550
 241
-543
+583
 global:show-virtual-flows?
 global:show-virtual-flows?
 1
@@ -393,37 +404,19 @@ global:show-virtual-flows?
 
 CHOOSER
 21
-455
+495
 186
-500
+540
 global:link-display-var
 global:link-display-var
 "flow" "national-flow" "international-flow" "speed"
 0
 
-PLOT
-964
-205
-1164
-355
-reg
-NIL
-NIL
-0.0
-1.0
--1.0
-1.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" ""
-
 BUTTON
-31
-572
-165
-605
+251
+546
+385
+579
 toggle pair flows
 network:toggle-pair-flows
 NIL
@@ -497,19 +490,124 @@ NIL
 HORIZONTAL
 
 OUTPUT
-953
-368
-1395
-575
+420
+343
+932
+614
 11
 
 BUTTON
 206
-463
+503
 302
-496
+536
 update display
 display:update-display
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+20
+359
+309
+392
+global:governance-effective-cost-to-access
+global:governance-effective-cost-to-access
+0
+1
+0.09
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+20
+395
+308
+428
+global:governance-effective-collab-proba
+global:governance-effective-collab-proba
+-1
+1
+0.9
+0.05
+1
+NIL
+HORIZONTAL
+
+CHOOSER
+20
+313
+147
+358
+global:network-mode
+global:network-mode
+"baseline" "governance"
+1
+
+PLOT
+968
+209
+1168
+359
+Cost diffs
+NIL
+NIL
+0.0
+10.0
+0.0
+1.0
+true
+true
+"" ""
+PENS
+"0" 1.0 0 -12087248 true "" "if length global:governance-cost-diffs > 0 [plot first last global:governance-cost-diffs]"
+"1" 1.0 0 -5825686 true "" "if length global:governance-cost-diffs > 0 [plot last last global:governance-cost-diffs]"
+
+PLOT
+1173
+209
+1373
+359
+Access diffs
+NIL
+NIL
+0.0
+10.0
+0.0
+1.0
+true
+true
+"" ""
+PENS
+"0" 1.0 0 -12087248 true "" "if length global:governance-access-diffs > 0 [plot first last global:governance-access-diffs]"
+"1" 1.0 0 -7858858 true "" "if length global:governance-access-diffs > 0 [plot last last global:governance-access-diffs]"
+
+CHOOSER
+148
+313
+317
+358
+global:governance-param-scaling-mode
+global:governance-param-scaling-mode
+"first-step" "baseline"
+0
+
+BUTTON
+169
+31
+300
+64
+go with baseline
+go-with-baseline
 NIL
 1
 T

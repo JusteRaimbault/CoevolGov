@@ -18,9 +18,9 @@ to indicators:compute-indicators
   output-print (word "lagged pop clos = " indicators:lagged-corrs "city-population" "city-closeness-centrality" 6 0) 
   output-print (word "lagged pop acc = " indicators:lagged-corrs "city-population" "city-accessibility" 6 0) 
   output-print (word "lagged clos acc = " indicators:lagged-corrs "city-closeness-centrality" "city-accessibility" 6 0)  
-  output-print (word "dist pop clos = " distance-correlation "city-population" "city-closeness-centrality")  
-  output-print (word "dist pop acc = " distance-correlation "city-population" "city-accessibility")  
-  output-print (word "dist clos acc = " distance-correlation "city-closeness-centrality" "city-accessibility")  
+  ;output-print (word "dist pop clos = " distance-correlation "city-population" "city-closeness-centrality")  
+  ;output-print (word "dist pop acc = " distance-correlation "city-population" "city-accessibility")  
+  ;output-print (word "dist clos acc = " distance-correlation "city-closeness-centrality" "city-accessibility")  
   output-print (word "rank pop = " rank-correlation "city-population")  
   output-print (word "rank clos = " rank-correlation "city-closeness-centrality")  
   output-print (word "rank acc = " rank-correlation "city-accessibility")  
@@ -33,11 +33,41 @@ to indicators:compute-indicators
   output-print (word "rank corr variables pop - closeness = " rank-correlations-vars "city-population" "city-closeness-centrality")
   output-print (word "rank corr variables pop - access = " rank-correlations-vars "city-population" "city-accessibility")
   output-print (word "rank corr variables pop - closeness = " rank-correlations-vars "city-closeness-centrality" "city-accessibility")
-  output-print (word "population seg hierarchies = " population-seg-hierarchies)
-  output-print (word "closeness seg hierarchies = " closeness-seg-hierarchies)
-  output-print (word "accessibility seg hierarchies = " accessibility-seg-hierarchies)
+  ;output-print (word "population seg hierarchies = " population-seg-hierarchies)
+  ;output-print (word "closeness seg hierarchies = " closeness-seg-hierarchies)
+  ;output-print (word "accessibility seg hierarchies = " accessibility-seg-hierarchies)
+  
+  ; governance indics
+  output-print (word "average cost diffs = " mean map [? -> first ?] global:governance-cost-diffs " ; " mean map [? -> last ?] global:governance-cost-diffs)
+  output-print (word "average access diffs = " mean map [? -> first ?] global:governance-access-diffs " ; " mean map [? -> last ?] global:governance-access-diffs)
+  output-print (word "average probas = " mean map [? -> first ?] global:governance-probas " ; " mean map [? -> last ?] global:governance-probas)
+  if length global:governance-collab > 0 [output-print (word "average collab = " mean map [? -> first ?] global:governance-collab " ; " mean map [? -> last ?] global:governance-collab)]
+  output-print (word "governance level = " mean global:governance-level)
 end
 
+
+;;
+;
+to indicators:store-indicators [key]
+  table:put global:indicators (list "population-hierarchies" key) population-hierarchies table:put global:indicators (list "population-entropies" key) population-entropies table:put global:indicators (list "population-summaries" key) population-summaries
+  table:put global:indicators (list "closeness-hierarchies" key) closeness-hierarchies table:put global:indicators (list "closeness-entropies" key) closeness-entropies table:put global:indicators (list "closeness-summaries" key) closeness-summaries
+  table:put global:indicators (list "accessibility-hierarchies" key) accessibility-hierarchies table:put global:indicators (list "accessibility-entropies" key) accessibility-entropies table:put global:indicators (list "accessibility-summaries" key) accessibility-summaries
+  ;output-print (word "lagged-pop-clos = " indicators:lagged-corrs "city-population" "city-closeness-centrality" 6 0)  output-print (word "lagged pop acc = " indicators:lagged-corrs "city-population" "city-accessibility" 6 0)  output-print (word "lagged clos acc = " indicators:lagged-corrs "city-closeness-centrality" "city-accessibility" 6 0)  
+  table:put global:indicators (list "rank-pop" key) (rank-correlation "city-population") table:put global:indicators (list "rank-clos" key) (rank-correlation "city-closeness-centrality") table:put global:indicators (list "rank-acc" key)(rank-correlation "city-accessibility")  
+  table:put global:indicators (list "div-pop" key) (trajectories-diversity "city-population") table:put global:indicators (list "div-clos" key) (trajectories-diversity "city-closeness-centrality") table:put global:indicators (list "div-acc" key) (trajectories-diversity "city-accessibility")
+  table:put global:indicators (list "complexity-pop" key) (trajectories-complexity "city-population") table:put global:indicators (list "complexity-clos" key) (trajectories-complexity "city-closeness-centrality") table:put global:indicators (list "complexity-acc" key) (trajectories-complexity "city-accessibility")  
+  table:put global:indicators (list "rank-corr-pop-closeness" key) (rank-correlations-vars "city-population" "city-closeness-centrality") table:put global:indicators (list "rank-corr-pop-access" key) (rank-correlations-vars "city-population" "city-accessibility") table:put global:indicators (list "rank-corr-pop-closeness" key) (rank-correlations-vars "city-closeness-centrality" "city-accessibility")
+  table:put global:indicators (list "cost-diffs" key) global:governance-cost-diffs
+  table:put global:indicators (list "access-diffs" key) global:governance-access-diffs
+  if length global:governance-collab > 0 [table:put global:indicators (list "governance-collab" key) global:governance-collab]
+  table:put global:indicators (list  "governance-level" key) (mean global:governance-level)
+end
+
+;;
+; shortened proc name for external reporting
+to-report indic [name key]
+  ifelse table:has-key? global:indicators (list name key) [report table:get global:indicators (list name key)][report 0]
+end
 
 
 
@@ -471,28 +501,28 @@ to-report population-summaries
 end
 
 
-to-report indic-hierarchy [indic t]
-  let cl [] foreach global:indicator-sample-cities [? -> ask ? [set cl lput (table:get global:city-values-table (list t indic city:index)) cl]]
+to-report indic-hierarchy [indicname t]
+  let cl [] foreach global:indicator-sample-cities [? -> ask ? [set cl lput (table:get global:city-values-table (list t indicname city:index)) cl]]
   report rank-size-hierarchy cl
 end
 
-to-report indic-hierarchies [indic]
+to-report indic-hierarchies [indicname]
   let res []
   foreach utils:list:seq 0 global:final-time-step global:indicator-sampling-time-step [t ->
-    set res lput indic-hierarchy indic t res
+    set res lput indic-hierarchy indicname t res
   ]
   report utils:list:concatenate res
 end
 
-to-report indic-seg-hierarchy [indic t]
-  let cl [] foreach global:indicator-sample-cities [? -> ask ? [set cl lput (table:get global:city-values-table (list t indic city:index)) cl]]
+to-report indic-seg-hierarchy [indicname t]
+  let cl [] foreach global:indicator-sample-cities [? -> ask ? [set cl lput (table:get global:city-values-table (list t indicname city:index)) cl]]
   report breakpoint-regression cl
 end
 
-to-report indic-seg-hierarchies [indic]
+to-report indic-seg-hierarchies [indicname]
   let res []
   foreach utils:list:seq 0 global:final-time-step global:indicator-sampling-time-step [t ->
-    set res lput indic-seg-hierarchy indic t res
+    set res lput indic-seg-hierarchy indicname t res
   ]
   report utils:list:concatenate res
 end

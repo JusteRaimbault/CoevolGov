@@ -7,7 +7,7 @@ to network:evolve-network
   
       
   ; grow the network
-  network:grow-physical-network
+  network:grow-physical-network-governance
   
   ; put distance matrix in history
   ;show (word "avg distmat = " (mean (map mean matrix:to-row-list distance-matrix)))
@@ -23,6 +23,11 @@ to network:evolve-network
 end
 
 
+;;
+; null model with only flow reinforcment
+to network:grow-physical-network-reinforcment
+  
+end
 
 
 ;;
@@ -33,30 +38,42 @@ end
 ;  - draw collaboration status
 ;  - update travel times accordingly and network
 ;    Q: if NC/C, local improves only? yes, would not make sense to have one side investing only (find regimes whith relatively high probas of collab?)
-to network:grow-physical-network
+to network:grow-physical-network-governance
   
   let previous-accessibilities map [i -> cities:accessibilities cities with [city:country = i]] global:countries
-  ;show (word "Avg access by country = " map mean previous-accessibilities)
+  output-print (word "Avg previous access by country = " map mean previous-accessibilities)
   let previous-config network:save-config ; updates are done on flows: these must be computed after pop update: here only once to restore
   
-  ; estimate national and international investments
-  let national-investment network:estimate-investment true previous-config
-  let international-investment network:estimate-investment false previous-config
+  ; estimate national and international investments - computed in any case
+  let national-investment network:estimate-investment "national-flow" previous-config
+  let international-investment network:estimate-investment "international-flow" previous-config
   
   ; estimate collab probas
   let probas governance:collaboration-probas national-investment international-investment
+  output-print (word "probas = " probas)
   
-  ; draw outcome: generic in any number of countries? if more than two, may have bilateral collaborations => return a country matrix - fully international iff ones only in the matrix
-  ; 2/2: not a tensor (only choice national/inter, not between neighbors)
-  let collaboration-matrix governance:collaboration-matrix probas
+  ifelse global:network-mode = "governance" [
+    ; draw outcome: generic in any number of countries? if more than two, may have bilateral collaborations => return a country matrix - fully international iff ones only in the matrix
+    ; 2/2: not a tensor (only choice national/inter, not between neighbors)
+    let collaboration governance:draw-collaboration probas
+    output-print (word "collaboration = " collaboration)
   
-  ifelse matrix:sum collaboration-matrix = (length global:countries * length global:countries) [
-    network:restore-config (item 2 international-investment)
+    ifelse sum collaboration = (length global:countries) [ ; all countries cooperating
+      network:restore-config (item 2 international-investment)
+      set global:governance-level lput 1 global:governance-level
+    ][ ; at least one country defecting
+      network:restore-config (item 2 national-investment)
+      set global:governance-level lput 0 global:governance-level
+    ]
   ][
-    network:restore-config (item 2 national-investment)
+    if global:network-mode = "baseline" [
+      let newnet network:estimate-investment "flow" previous-config
+      network:restore-config (item 2 newnet)
+      set global:governance-level lput 0 global:governance-level
+    ]
   ]
   
-  show (word "Avg travel time = " mean [path:travel-time] of paths)
+  output-print (word "Avg travel time = " mean [path:travel-time] of paths)
   
   
 end
@@ -75,9 +92,9 @@ end
 ;     * restore previous travel time
 ;
 ; returns new-accessibilities linkcosts newconfig:so that can be applied without recomputing
-to-report network:estimate-investment [local? savedconfig]
+to-report network:estimate-investment [mode savedconfig]
   ; update travel times with given investment
-  let linkcosts network:update-links-travel-time local?
+  let linkcosts network:update-links-travel-time mode
   let newconfig network:save-config
   let measures item 1 newconfig
   ;update network measures
@@ -101,12 +118,16 @@ end
 ; rq: given simple setup, national flows are only inside the country - can use national without distinguishing - cost can be computed after given cost of each link upgrade
 ; 
 ; report upgrade costs by links
-to-report network:update-links-travel-time [local-flows?]
+to-report network:update-links-travel-time [mode]
   ; evolve speeds (i.e. impedances) following a slime mould heuristic
   ;  flows already computed in population (for feedbak if needed)
   ; no new links in this heuristic
   ; thresholded link growth as a function of flow
-  ask paths [ifelse local-flows? [set path:tmp-flow path:national-flow][set path:tmp-flow path:international-flow]]
+  ask paths [
+    if mode = "flow" [set path:tmp-flow path:flow]
+    if mode = "national-flow" [set path:tmp-flow path:national-flow]
+    if mode = "international-flow" [set path:tmp-flow path:international-flow]
+  ]
   
   let link-upgrade-costs table:make
   
@@ -309,7 +330,7 @@ to path:new-path
   
   set path:travel-time path:length
   
-  set path:flow 0
+  set path:flow 0 set path:national-flow 0 set path:international-flow 0
   set hidden? false
   let x ([xcor] of end1 + [xcor] of end2) / 2 ;let y ([ycor] of end1 + [ycor] of end2) / 2
   ifelse x < min-pxcor + (max-pxcor - min-pxcor) / 2 [set path:country 0][set path:country 1]

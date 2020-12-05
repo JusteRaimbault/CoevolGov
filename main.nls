@@ -4,6 +4,24 @@
 
 
 ;;
+; go first for baseline and then in governance mode
+to go-with-baseline
+  set global:network-mode "baseline"
+  go-full-period
+  indicators:store-indicators "baseline"
+  
+  governance:setup-scaled-parameters
+  
+  setup:reset
+  set global:network-mode "governance"
+  go-full-period
+  indicators:store-indicators "governance"
+  
+end
+
+
+
+;;
 ; go for the full period
 to go-full-period
   
@@ -15,6 +33,10 @@ to go-full-period
     go
   ]
   
+  if global:headless? != true [
+    indicators:compute-indicators
+  ]
+    
 end
 
 
@@ -24,6 +46,10 @@ to go
   
   ; tick done at the beginning, as we start at t=1
   tick
+  
+  output-print ""
+  output-print "------------"
+  output-print (word "it " ticks)
   
   ; evolve populations
   cities:evolve-populations
@@ -37,8 +63,8 @@ to go
   display:update-display
   
   ;log
-  show (word "average log population " mean [ln city:population] of cities)
-  show (word "average travel time " mean (utils:list:concatenate matrix:to-row-list global:distance-matrix))
+  output-print (word "average log population " mean [ln city:population] of cities)
+  output-print (word "average travel time " mean (utils:list:concatenate matrix:to-row-list global:distance-matrix))
   
 end
 

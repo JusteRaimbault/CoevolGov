@@ -86,6 +86,15 @@ to-report utils:list:concatenate [lists]
   report res
 end
 
+to-report utils:list:flatten [l]
+  if length l = 0 [report l]
+  ifelse is-list? (item 0 l)[
+    report utils:list:flatten (utils:list:concatenate l)
+  ][
+    report l 
+  ]
+end
+
 
 ;;
 ; reverse image of a list

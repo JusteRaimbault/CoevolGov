@@ -11,6 +11,7 @@
 ;   - for collab-cost, given cost-to-access, for one country (for example with the largest proba?) the proba is fixed, so collab-cost = pproba x (DDZ - cost-to-access DDC), then recompute other probas
 to-report governance:collaboration-probas [national-investment international-investment]
   let nat-access item 0 national-investment let internat-access item 0 international-investment
+  output-print (word "new nat access by country = " map sum nat-access) output-print (word "new internat access by country = " map sum internat-access)
   let nat-costs item 1 national-investment let internat-costs item 1 international-investment
   let natcostslist utils:list:rep [] length global:countries let internatcostslist utils:list:rep [] length global:countries
   ask paths [; transform link cost table into same format as access
@@ -19,14 +20,66 @@ to-report governance:collaboration-probas [national-investment international-inv
     set natcostslist replace-item countryind natcostslist (lput natcost (item countryind natcostslist))
     set internatcostslist replace-item countryind internatcostslist (lput internatcost (item countryind internatcostslist))
   ]
+  
+  ; access diffs internat/nat for each country
   let accessdiffs [] (foreach nat-access internat-access [ [nat internat] -> set accessdiffs lput (sum internat - sum nat) accessdiffs])
+  output-print (word "access diffs = " accessdiffs)
+  set global:governance-access-diffs lput accessdiffs global:governance-access-diffs
+  
+  ; cost diffs
   let costdiffs [] (foreach natcostslist internatcostslist [ [nat internat] -> set costdiffs lput (sum internat - sum nat) costdiffs]) ; accesses contructed with a map on global:countries, consistent
-  let avgcostaccessratio (sum map abs accessdiffs) / (sum map abs costdiffs)
-  if global:governance-cost-to-access = -1 [set global:governance-cost-to-access global:governance-effective-cost-to-access avgcostaccessratio]
+  output-print (word "cost diffs = " costdiffs)
+  set global:governance-cost-diffs lput costdiffs global:governance-cost-diffs
   
+  ; use values to set scaled params
+  if global:governance-param-scaling-mode = "first-step" [
+    let avgcostaccessratio (sum map abs accessdiffs) / (sum map abs costdiffs)
+    if global:governance-cost-to-access = -1 [set global:governance-cost-to-access global:governance-effective-cost-to-access * avgcostaccessratio]
+  ]
+  
+  let denoms [] (foreach accessdiffs costdiffs [ [access cost] -> set denoms lput (access - (global:governance-cost-to-access * cost)) denoms])
+  output-print (word "denoms = " denoms)
+  
+  ; if subsidies instead of collab cost: give negative governance:effective-collab-proba, then J is set as -J
+  ; J computed for the largest proba in absolute value? or positive? what if both negative? -> if one pos the other neg, pos;?
+  ; -> multiply by sign of p, take largest
+  if global:governance-param-scaling-mode = "first-step" and not global:governance-collab-cost-set? [
+    ;let collabsign global:governance-effective-collab-proba / (abs global:governance-effective-collab-proba)
+    ;let sdenoms map [? -> ? * collabsign] denoms let maxdenom max sdenoms
+    ;set global:governance-collab-cost (global:governance-effective-collab-proba * maxdenom)
+    let maxdenom max map abs denoms set global:governance-collab-cost (global:governance-effective-collab-proba * maxdenom)
+    set global:governance-collab-cost-set? true
+  ]
+  
+  let probas [] foreach denoms [ denom -> set probas lput (global:governance-collab-cost / denom) probas]
+  set global:governance-probas lput (rev probas) global:governance-probas
+  ; ! revert probas as formula is for p_{1-i}
+  report rev probas
 end
 
-to-report governance:collaboration-matrix [probas]
-  
+;;
+; do not constraint probas: if < 0, never realized, if > 1 always
+to-report governance:draw-collaboration [probas]
+  let res map [p -> uniform-draw p] probas 
+  set global:governance-collab lput res global:governance-collab
+  report res
 end
 
+to-report uniform-draw [p]
+  ifelse random-float 1 < p [report 1][report 0]
+end
+
+;;
+; must be called when a baseline run has been done
+to governance:setup-scaled-parameters
+  if global:governance-param-scaling-mode = "baseline" [
+    output-print "Setting up gov params from baseline"
+    let access-diffs indic "access-diffs" "baseline" let cost-diffs indic "cost-diffs" "baseline"
+    let avgcostaccessratio (mean map abs (utils:list:flatten access-diffs)) / (mean map abs (utils:list:flatten cost-diffs))
+    set global:governance-cost-to-access global:governance-effective-cost-to-access * avgcostaccessratio
+    let quots [] (foreach utils:list:flatten access-diffs utils:list:flatten cost-diffs [ [access cost] -> set quots lput (1 / abs (access - (global:governance-cost-to-access * cost))) quots])
+    set global:governance-collab-cost (global:governance-effective-collab-proba / (mean quots))
+    output-print (word "global:governance-cost-to-access = " global:governance-cost-to-access)
+    output-print (word "global:governance-collab-cost = " global:governance-collab-cost)
+  ]
+end

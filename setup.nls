@@ -35,7 +35,11 @@ to setup:setup
  
   indicators:update-indicators
   
+  ;output-print (word "average log population " mean [ln city:population] of cities)
+  ;output-print (word "average travel time " mean (utils:list:concatenate matrix:to-row-list global:distance-matrix))
   
+  ; not in globals so it is not reset - for run with baseline
+  set global:indicators table:make
   
 end
 
@@ -48,13 +52,19 @@ to setup:reset
   ;setup:setup-matrices
   setup:reset-populations
   setup:reset-links
-  setup:reset-distances ; not necessary
+  ;setup:reset-distances ; not necessary
   setup:setup-matrices
   setup:setup-indicators
   reset-ticks
   clear-all-plots
   display:update-display
   display:color-patches
+  
+  indicators:update-indicators
+  
+  ;output-print (word "average log population " mean [ln city:population] of cities)
+  ;output-print (word "average travel time " mean (utils:list:concatenate matrix:to-row-list global:distance-matrix))
+  
 end
 
 to setup:reset-populations
@@ -93,6 +103,9 @@ to setup:setup-globals
   
   set global:pair-paths-hidden? true
   
+  set global:governance-cost-to-access -1 ; unset scaled parameter
+  set global:governance-collab-cost-set? false
+  
 end
 
 
@@ -110,7 +123,7 @@ end
 
 to setup:setup-cities
   
-  output-show "    cities"
+  ;output-show "    cities"
   
   let i 1 let index 1
   let xmin min-pxcor + 10 let xmax min-pxcor + ((max-pxcor - min-pxcor) / 2) - 10
@@ -136,7 +149,7 @@ end
 
 to setup:initial-network
   
-  output-show "    initial network"
+  ;output-show "    initial network"
   
   foreach utils:list:seq min-pxcor max-pxcor global:network-setup-node-distance [x ->
       foreach utils:list:seq min-pycor max-pycor global:network-setup-node-distance [ y ->
@@ -172,7 +185,7 @@ end
 
 to setup:setup-matrices
     
-  output-show "    matrices"
+  ;output-show "    matrices"
   
   let n count cities
     
@@ -194,7 +207,7 @@ to setup:setup-matrices
     let i city:index let ci city:country ask cities [let j city:index let cj city:country ifelse ci = cj 
     [matrix:set global:country-decay-matrix i j 1][matrix:set global:country-decay-matrix i j global:gravity-international-flows-ratio]]
   ]
-  show (word "country decay avg = " matrix:mean global:country-decay-matrix)
+  ;show (word "country decay avg = " matrix:mean global:country-decay-matrix)
   
   ; feedback distance matrix
   ;let xcors [] let ycors []
@@ -218,7 +231,7 @@ to setup:setup-matrices
   set global:distance-matrices table:make
   table:put global:distance-matrices (first global:dates) matrix:copy global:distance-matrix
   
-  show cities:gravity-flows pops
+  ;show cities:gravity-flows pops
   set global:gravity-flows matrix:copy cities:gravity-flows pops
   ;set global:feedback-flows matrix:make-constant n n 0
   ; network:update-distance-matrices ; updating matrices when network measures have not been computed makes no sense
@@ -235,6 +248,12 @@ to setup:setup-indicators
   set global:indicator-sample-cities to-list cities
   
   set global:city-values-table table:make
+  
+  set global:governance-access-diffs []
+  set global:governance-cost-diffs []
+  set global:governance-probas []
+  set global:governance-collab []
+  set global:governance-level []
   
 end
 

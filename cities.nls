@@ -143,15 +143,17 @@ end
 ;;
 ; acessibilities for an agentset of given cities - weighted by origin and with country effect
 to-report cities:accessibilities [cityagentset]
+  ; no need to sort the list of indices if matrices are properly indexed afterwards (consistent use of sparse-submatrix)
   let rowinds [city:index] of cityagentset let colinds (utils:list:seq 0 (item 1 matrix:dimensions global:distance-matrix - 1) 1)
+  ;show rowinds
   ;show (utils:list:seq 0 (item 1 matrix:dimensions global:distance-matrix - 1) 1)
   let d matrix:map [? -> exp (- ? / global:gravity-decay)] matrix:sparse-submatrix global:distance-matrix rowinds colinds 
-  foreach (utils:list:seq 0 (count cityagentset - 1) 1) [i -> matrix:set d i i 0]
+  (foreach rowinds (utils:list:seq 0 (length rowinds - 1) 1) [ [row i] -> matrix:set d i row 0]) ; ! not the diagonal, but the column corresponding to the row index!
   set d matrix:times-element-wise d (matrix:sparse-submatrix global:country-decay-matrix rowinds colinds)
-  show map mean matrix:to-row-list d
+  ;show map mean matrix:to-row-list d
   let pops matrix:submatrix global:populations 0 ticks (count cities) (ticks + 1)
   let selpops matrix:sparse-submatrix global:populations rowinds (list ticks)
-  show selpops
+  ;show selpops
   report item 0 matrix:to-column-list matrix:times-element-wise selpops (matrix:times d pops)
 end
 
