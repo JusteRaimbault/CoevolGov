@@ -56,11 +56,12 @@ to indicators:store-indicators [key]
   table:put global:indicators (list "rank-pop" key) (rank-correlation "city-population") table:put global:indicators (list "rank-clos" key) (rank-correlation "city-closeness-centrality") table:put global:indicators (list "rank-acc" key)(rank-correlation "city-accessibility")  
   table:put global:indicators (list "div-pop" key) (trajectories-diversity "city-population") table:put global:indicators (list "div-clos" key) (trajectories-diversity "city-closeness-centrality") table:put global:indicators (list "div-acc" key) (trajectories-diversity "city-accessibility")
   table:put global:indicators (list "complexity-pop" key) (trajectories-complexity "city-population") table:put global:indicators (list "complexity-clos" key) (trajectories-complexity "city-closeness-centrality") table:put global:indicators (list "complexity-acc" key) (trajectories-complexity "city-accessibility")  
-  table:put global:indicators (list "rank-corr-pop-closeness" key) (rank-correlations-vars "city-population" "city-closeness-centrality") table:put global:indicators (list "rank-corr-pop-access" key) (rank-correlations-vars "city-population" "city-accessibility") table:put global:indicators (list "rank-corr-pop-closeness" key) (rank-correlations-vars "city-closeness-centrality" "city-accessibility")
+  table:put global:indicators (list "rank-corr-pop-closeness" key) (rank-correlations-vars "city-population" "city-closeness-centrality") table:put global:indicators (list "rank-corr-pop-access" key) (rank-correlations-vars "city-population" "city-accessibility") table:put global:indicators (list "rank-corr-closeness-access" key) (rank-correlations-vars "city-closeness-centrality" "city-accessibility")
   table:put global:indicators (list "cost-diffs" key) global:governance-cost-diffs
   table:put global:indicators (list "access-diffs" key) global:governance-access-diffs
   if length global:governance-collab > 0 [table:put global:indicators (list "governance-collab" key) global:governance-collab]
-  table:put global:indicators (list  "governance-level" key) (mean global:governance-level)
+  table:put global:indicators (list  "governance-level" key) global:governance-level
+  table:put global:indicators (list "network-costs" key) global:network-costs
 end
 
 ;;
@@ -84,6 +85,34 @@ to indicators:update-indicators
 end
 
 
+;;
+; report a relative delta for a given temporal list of values, such that the scalar indicator is at index in flattened sublists
+to-report indicators:delta [values index sublistlength]
+  let v0 item index values
+  let vf item (length values - sublistlength + index) values
+  report (vf - v0) / v0
+end
+
+
+to-report indicators:governance-cost-diff
+  report mean utils:list:flatten global:governance-cost-diffs
+end
+
+to-report indicators:governance-access-diff
+  report mean utils:list:flatten global:governance-access-diffs
+end
+
+to-report indicators:governance-probas
+  report mean utils:list:flatten global:governance-probas
+end
+
+to-report indicators:governance-collab
+  ifelse length global:governance-collab > 0 [report mean utils:list:flatten global:governance-collab][report 0]
+end
+
+to-report indicators:governance-level
+  report mean utils:list:flatten global:governance-level
+end
 
 ;;
 ; lagged correlation, between two vars, already

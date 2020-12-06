@@ -7,7 +7,7 @@ to network:evolve-network
   
       
   ; grow the network
-  network:grow-physical-network-governance
+  network:grow-physical-network
   
   ; put distance matrix in history
   ;show (word "avg distmat = " (mean (map mean matrix:to-row-list distance-matrix)))
@@ -24,10 +24,10 @@ end
 
 
 ;;
-; null model with only flow reinforcment
-to network:grow-physical-network-reinforcment
-  
-end
+; null model with only flow reinforcment -> switch with network-mode
+;to network:grow-physical-network-reinforcment
+;  
+;end
 
 
 ;;
@@ -38,7 +38,7 @@ end
 ;  - draw collaboration status
 ;  - update travel times accordingly and network
 ;    Q: if NC/C, local improves only? yes, would not make sense to have one side investing only (find regimes whith relatively high probas of collab?)
-to network:grow-physical-network-governance
+to network:grow-physical-network
   
   let previous-accessibilities map [i -> cities:accessibilities cities with [city:country = i]] global:countries
   output-print (word "Avg previous access by country = " map mean previous-accessibilities)
@@ -61,15 +61,18 @@ to network:grow-physical-network-governance
     ifelse sum collaboration = (length global:countries) [ ; all countries cooperating
       network:restore-config (item 2 international-investment)
       set global:governance-level lput 1 global:governance-level
+      set global:network-costs lput (table:values (item 1 international-investment)) global:network-costs
     ][ ; at least one country defecting
       network:restore-config (item 2 national-investment)
       set global:governance-level lput 0 global:governance-level
+      set global:network-costs lput (table:values (item 1 national-investment)) global:network-costs
     ]
   ][
     if global:network-mode = "baseline" [
       let newnet network:estimate-investment "flow" previous-config
       network:restore-config (item 2 newnet)
       set global:governance-level lput 0 global:governance-level
+      set global:network-costs lput (table:values (item 1 newnet)) global:network-costs
     ]
   ]
   

@@ -254,6 +254,7 @@ to setup:setup-indicators
   set global:governance-probas []
   set global:governance-collab []
   set global:governance-level []
+  set global:network-costs []
   
 end
 

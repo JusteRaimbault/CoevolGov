@@ -165,6 +165,7 @@ globals [
   global:governance-collab-cost
   global:governance-effective-collab-proba
 
+  global:network-costs
 
 ]
 

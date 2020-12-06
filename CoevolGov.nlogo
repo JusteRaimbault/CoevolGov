@@ -113,6 +113,8 @@ globals [
   global:governance-collab
   global:governance-level
 
+  global:network-costs
+
   ; network measures
   global:shortest-paths
   global:nw-speeds
@@ -283,7 +285,7 @@ global:gravity-decay
 global:gravity-decay
 1
 500
-48.9
+50.0
 0.1
 1
 NIL
@@ -537,7 +539,7 @@ global:governance-effective-collab-proba
 global:governance-effective-collab-proba
 -1
 1
-0.9
+-0.5
 0.05
 1
 NIL
@@ -599,7 +601,7 @@ CHOOSER
 global:governance-param-scaling-mode
 global:governance-param-scaling-mode
 "first-step" "baseline"
-0
+1
 
 BUTTON
 169

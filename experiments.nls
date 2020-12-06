@@ -70,7 +70,7 @@ to test-experiment
   ca
   
   ;setup-experiment synth-ranksize grav-gamma grav-decay grav-inter-ratio nw-mode nw-gmax nw-exponent nw-rein-quantile gov-cost-to-access gov-effective-proba gov-param-mode final-time seed
-  setup-experiment 1.0 1.0 30.0 0.5 "governance" 0.05 1.0 0.5 0.1 0.5 "baseline" 30 (random 100000)
+  setup-experiment 1.0 0.9 50.0 0.95 "governance" 0.05 1.0 0.5 0.75 -0.9 "baseline" 30 (random 100000)
   run-experiment-with-baseline
   indicators:compute-indicators
   

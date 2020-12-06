@@ -1,0 +1,148 @@
+
+// parameters
+val synthRankSize = Val[Double]
+val gravityGamma = Val[Double]
+val gravityDecay = Val[Double]
+val gravityInterRatio = Val[Double]
+val nwMode = Val[String]
+val nwGmax = Val[Double]
+val nwExponent = Val[Double]
+val nwReinQuantile = Val[Double]
+val govCostToAccess = Val[Double]
+val govEffectiveProba = Val[Double]
+val govParamMode = Val[String]
+val finalTime = Val[Double]
+val seed = Val[Double] // for Saltelli
+val id = Val[Int]
+
+// indicators
+val deltaPop = Val[Double]
+val deltaAccessibility = Val[Double]
+val deltaCloseness = Val[Double]
+val deltaPopBaseline = Val[Double]
+val deltaAccessibilityBaseline = Val[Double]
+val deltaClosenessBaseline = Val[Double]
+
+val deltaEntropyPop = Val[Double]
+val deltaEntropyCloseness = Val[Double]
+val deltaEntropyAccessibility = Val[Double]
+
+val deltaHierarchiesPop = Val[Double]
+val deltaHierarchiesCloseness = Val[Double]
+val deltaHierarchiesAccessibility = Val[Double]
+val deltaHierarchiesPopBaseline = Val[Double]
+val deltaHierarchiesClosenessBaseline = Val[Double]
+val deltaHierarchiesAccessibilityBaseline = Val[Double]
+
+val deltaRankCorrsPopCloseness = Val[Double]
+val deltaRankCorrsPopAccessibility = Val[Double]
+val deltaRankCorrsClosenessAccessibility = Val[Double]
+
+val rankCorrPop = Val[Double]
+val rankCorrCloseness = Val[Double]
+val rankCorrAccessibility = Val[Double]
+
+val diversityPop = Val[Double]
+val diversityCloseness = Val[Double]
+val diversityAccessibility = Val[Double]
+
+val complexityPop = Val[Double]
+val complexityCloseness = Val[Double]
+val complexityAccessibility = Val[Double]
+
+val governanceCostDiff = Val[Double]
+val governanceAccessDiff = Val[Double]
+val governanceProbas = Val[Double]
+val governanceCollab = Val[Double]
+val governanceLevel = Val[Double]
+
+val networkCostBasline = Val[Double]
+val networkCost = Val[Double]
+
+
+
+val cmds = Seq("setup-experiment ${synthRankSize} ${gravityGamma} ${gravityDecay} ${gravityInterRatio} \"${nwMode}\" ${nwGmax} ${nwExponent} ${nwReinQuantile} ${govCostToAccess} ${govEffectiveProba} \"${govParamMode}\" ${finalTime} ${seed}",
+  "run-experiment-with-baseline")
+
+val model = NetLogo6Task(workDirectory / "HEADLESS_CoevolGov.nlogo",cmds,embedWorkspace=true,reuseWorkspace=true) set(
+    (inputs, outputs) += (synthRankSize,gravityGamma,gravityDecay,gravityInterRatio,nwMode,nwGmax,nwExponent,nwReinQuantile,govCostToAccess,govEffectiveProba,govParamMode,finalTime,seed,id),
+    outputs += deltaPop mapped "indicators:delta population-summaries 0 3",
+    outputs += deltaAccessibility mapped "indicators:delta accessibility-summaries 0 3",
+    outputs += deltaCloseness mapped "indicators:delta closeness-summaries 0 3",
+    outputs += deltaPopBaseline mapped "indicators:delta (indic \"population-summaries\" \"baseline\") 0 3",
+    outputs += deltaAccessibilityBaseline mapped "indicators:delta (indic \"accessibility-summaries\" \"baseline\") 0 3",
+    outputs += deltaClosenessBaseline mapped "indicators:delta (indic \"closeness-summaries\" \"baseline\") 0 3",
+    outputs += deltaEntropyPop mapped "indicators:delta population-entropies 0 1",
+    outputs += deltaEntropyCloseness mapped "indicators:delta closeness-entropies 0 1",
+    outputs += deltaEntropyAccessibility mapped "indicators:delta accessibility-entropies 0 1",
+    outputs += deltaHierarchiesPop mapped "indicators:delta population-hierarchies 0 2",
+    outputs += deltaHierarchiesCloseness mapped "indicators:delta closeness-hierarchies 0 2",
+    outputs += deltaHierarchiesAccessibility mapped "indicators:delta accessibility-hierarchies 0 2",
+    outputs += deltaHierarchiesPopBaseline mapped "indicators:delta (indic \"population-hierarchies\" \"baseline\") 0 2",
+    outputs += deltaHierarchiesClosenessBaseline mapped "indicators:delta (indic \"closeness-hierarchies\" \"baseline\") 0 2",
+    outputs += deltaHierarchiesAccessibilityBaseline mapped "indicators:delta (indic \"accessibility-hierarchies\" \"baseline\") 0 2",
+    outputs += deltaRankCorrsPopCloseness mapped "indicators:delta (indic \"rank-corr-pop-closeness\" \"governance\") 0 1",
+    outputs += deltaRankCorrsPopAccessibility mapped "indicators:delta (indic \"rank-corr-pop-access\" \"governance\") 0 1",
+    outputs += deltaRankCorrsClosenessAccessibility mapped "indicators:delta (indic \"rank-corr-closeness-access\" \"governance\") 0 1",
+    outputs += rankCorrPop mapped "rank-correlation \"city-population\"",
+    outputs += rankCorrCloseness mapped "rank-correlation \"city-closeness-centrality\"",
+    outputs += rankCorrAccessibility mapped "rank-correlation \"city-accessibility\"",
+    outputs += diversityPop mapped "trajectories-diversity \"city-population\"",
+    outputs += diversityCloseness mapped "trajectories-diversity \"city-closeness-centrality\"",
+    outputs += diversityAccessibility mapped "trajectories-diversity \"city-accessibility\"",
+    outputs += complexityPop mapped "trajectories-complexity \"city-population\"",
+    outputs += complexityCloseness mapped "trajectories-complexity \"city-closeness-centrality\"",
+    outputs += complexityAccessibility mapped "trajectories-complexity \"city-accessibility\"",
+    outputs += governanceCostDiff mapped "indicators:governance-cost-diff",
+    outputs += governanceAccessDiff mapped "indicators:governance-access-diff",
+    outputs += governanceProbas mapped "indicators:governance-probas",
+    outputs += governanceCollab mapped "indicators:governance-collab",
+    outputs += governanceLevel mapped "indicators:governance-level",
+    outputs += networkCostBasline mapped "sum utils:list:flatten (indic \"network-costs\" \"baseline\")",
+    outputs += networkCost mapped "sum utils:list:flatten (indic \"network-costs\" \"governance\")",
+    // default param values
+    synthRankSize := 1.0,
+    gravityGamma := 0.9,
+    gravityDecay := 50.0,
+    gravityInterRatio := 0.9,
+    nwMode := "governance",
+    nwGmax := 0.05,
+    nwExponent := 1.0,
+    nwReinQuantile := 0.5,
+    govCostToAccess := 0.05,
+    govEffectiveProba := 0.5,
+    govParamMode := "baseline",
+    finalTime := 30.0,
+    seed := 1.0,
+    id := 0
+)
+
+val purpose = "GSA_GRID"
+//val purpose = "TEST"
+
+val env = EGIEnvironment("vo.complex-systems.eu")
+//val env = LocalEnvironment(5)
+
+SensitivitySaltelli(
+  evaluation = (model on env by 25),
+  //evaluation = (model on env),
+  sample = 10000,
+  inputs = Seq(
+    synthRankSize in (0.5,1.5),
+    gravityGamma in (0.1,5.0),
+    gravityDecay in (10.0,300.0),
+    gravityInterRatio in (0.1,1.0),
+    nwGmax in (0.001,0.1),
+    nwExponent in (0.1,5.0),
+    nwReinQuantile in (0.1,0.9),
+    govCostToAccess in (0.01,1.0),
+    govEffectiveProba in (-0.9,0.9),
+    seed in (-100000.0,100000.0)
+  ),
+  outputs = Seq(deltaPop,deltaAccessibility,deltaCloseness,deltaPopBaseline,deltaAccessibilityBaseline,deltaClosenessBaseline,
+    deltaEntropyPop,deltaEntropyCloseness,deltaEntropyAccessibility,deltaHierarchiesPop,deltaHierarchiesCloseness,deltaHierarchiesAccessibility,
+    deltaHierarchiesPopBaseline,deltaHierarchiesClosenessBaseline,deltaHierarchiesAccessibilityBaseline,deltaRankCorrsPopCloseness,
+    deltaRankCorrsPopAccessibility,deltaRankCorrsClosenessAccessibility,rankCorrPop,rankCorrCloseness,rankCorrAccessibility,
+    diversityPop,diversityCloseness,diversityAccessibility,complexityPop,complexityCloseness,complexityAccessibility,
+    governanceCostDiff,governanceAccessDiff,governanceProbas,governanceCollab,governanceLevel,networkCostBasline,networkCost)
+) hook (workDirectory / "saltelli" / (((new java.text.SimpleDateFormat("yyyyMMdd_HHmmss")).format(new java.util.Date()))+"_"+purpose))
