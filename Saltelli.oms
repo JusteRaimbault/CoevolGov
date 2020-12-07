@@ -118,19 +118,21 @@ val model = NetLogo6Task(workDirectory / "HEADLESS_CoevolGov.nlogo",cmds,embedWo
 )
 
 //val purpose = "GSA_GRID"
-val purpose = "GSA_LOCAL"
+//val purpose = "GSA_LOCAL"
+val purpose = "GSA_CLUSTER"
 //val purpose = "TEST"
 
 //val env = EGIEnvironment("vo.complex-systems.eu")
-val env = LocalEnvironment(16)
+val env = SGEEnvironment(memory = 2 gigabytes, localSubmission = true, wallTime = 30 minutes, workDirectory = "/home/uceejra/Scratch/.tmp")
+//val env = LocalEnvironment(16)
 
 val resprefix = (((new java.text.SimpleDateFormat("yyyyMMdd_HHmmss")).format(new java.util.Date()))+"_"+purpose)
 val model_hook = CSVHook(workDirectory / "saltelli" / (resprefix+".csv"),arrayOnRow=true)
 
 SensitivitySaltelli(
-  //evaluation = (model on env by 20 hook model_hook),
-  evaluation = (model on env hook model_hook),
-  sample = 300,
+  evaluation = (model on env by 10 hook model_hook),
+  //evaluation = (model on env hook model_hook),
+  sample = 2000,
   inputs = Seq(
     synthRankSize in (0.5,1.5),
     gravityGamma in (0.1,5.0),
