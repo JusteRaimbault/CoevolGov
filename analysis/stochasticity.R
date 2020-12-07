@@ -5,19 +5,31 @@ library(ggplot2)
 
 source(paste0(Sys.getenv('CS_HOME'),'/Organisation/Models/Utils/R/plots.R'))
 
-resprfix = ''
+resprefix = '20201206_183935_STOCHASTICITY_GRID'
 res <- as.tbl(read.csv(paste0('exploration/',resprefix,'.csv')))
 resdir = paste0('../../Results/CoevolGov/',resprefix,'/');dir.create(resdir)
 
-indics = c()
+indics = c("complexityAccessibility","complexityCloseness","complexityPop","deltaAccessibility",
+           "deltaAccessibilityBaseline","deltaCloseness","deltaClosenessBaseline","deltaEntropyAccessibility",
+           "deltaEntropyCloseness","deltaEntropyPop","deltaHierarchiesAccessibility","deltaHierarchiesAccessibilityBaseline",
+           "deltaHierarchiesCloseness","deltaHierarchiesClosenessBaseline","deltaHierarchiesPop","deltaHierarchiesPopBaseline",  
+           "deltaPop","deltaPopBaseline","deltaRankCorrsClosenessAccessibility","deltaRankCorrsPopAccessibility",  
+           "deltaRankCorrsPopCloseness","diversityAccessibility","diversityCloseness","diversityPop",                  
+           "governanceAccessDiff","governanceCollab","governanceCostDiff","governanceLevel",                  
+           "governanceProbas","networkCost","networkCostBasline","rankCorrAccessibility","rankCorrCloseness","rankCorrPop")
 
-seed = 42
+params = c("gravityDecay","gravityGamma","gravityInterRatio","govCostToAccess","govEffectiveProba",
+           "nwExponent","nwGmax","nwReinQuantile","synthRankSize")
+# "finalTime"
+
+#seed = 42
+seed = 666
 set.seed(seed)
 samples = 10
 
 # some histogram plots for some interesting indics
-for(indic in c()){
-  g=ggplot(res[res$id %in% sample(unique(res$id),samples),],aes_string(x=indic,fill=id,group=id))
+for(indic in c("deltaPop","deltaHierarchiesPop","deltaAccessibility","networkCost","governanceCollab","rankCorrPop")){
+  g=ggplot(res[res$id %in% sample(unique(res$id),samples),],aes_string(x=indic,fill="id",group="id"))
   g+geom_density(alpha=0.3)+stdtheme
   ggsave(file=paste0(resdir,indic,'_samples',samples,'-seed',seed,'.png'),width=20,height=18,units='cm')
 }

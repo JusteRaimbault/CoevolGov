@@ -90,7 +90,10 @@ end
 to-report indicators:delta [values index sublistlength]
   let v0 item index values
   let vf item (length values - sublistlength + index) values
-  report (vf - v0) / v0
+  ifelse v0 != 0 [report (vf - v0) / v0][
+    ;ifelse vf = 0 [report 0][report NA] ; cannot report NA: should support NA/NaN/Inf strings in NetLogoTask
+    report 0
+  ]
 end
 
 

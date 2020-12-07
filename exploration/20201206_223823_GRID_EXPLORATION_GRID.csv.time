@@ -1,0 +1,23 @@
+[interrupted: expections delta indic 0; running 122;15238/15360 finished]
+06/12/2020 22:38:19; 9:16:54;22d23h; 2.15G up; 946.78M down; 477 finished; 3098 failed
+
+
+
+Error in model@1540255796 for context values {finalTime=30.0, govCostToAccess=0.75, govEffectiveProba=0.3, govParamMode=baseline, gravityDecay=300.0, gravityGamma=0.5, gravityInterRatio=0.75, id=358, nwExponent=0.5, nwGmax=0.05, nwMode=governance, nwReinQuantile=0.1, openmole$seed=-6030383663986351188, seed=293649.7832148719, synthRankSize=0.5}
+org.openmole.core.exception.InternalProcessingError: Error in model@1540255796 for context values {finalTime=30.0, govCostToAccess=0.75, govEffectiveProba=0.3, govParamMode=baseline, gravityDecay=300.0, gravityGamma=0.5, gravityInterRatio=0.75, id=358, nwExponent=0.5, nwGmax=0.05, nwMode=governance, nwReinQuantile=0.1, openmole$seed=-6030383663986351188, seed=293649.7832148719, synthRankSize=0.5}
+	at org.openmole.core.workflow.tools.InputOutputCheck$.$anonfun$perform$1(InputOutputCheck.scala:126)
+	at org.openmole.core.expansion.FromContext.apply(FromContext.scala:239)
+	at org.openmole.core.expansion.FromContext.from(FromContext.scala:240)
+	at org.openmole.core.workflow.task.Task.perform(Task.scala:109)
+	at org.openmole.core.workflow.task.Task.perform$(Task.scala:107)
+	at org.openmole.plugin.task.netlogo6.NetLogo6Task.perform(NetLogo6Task.scala:131)
+	at org.openmole.core.workflow.job.MoleJob.perform(MoleJob.scala:95)
+	at org.openmole.core.workflow.execution.LocalExecutor.$anonfun$run$2(LocalExecutor.scala:62)
+	at scala.collection.immutable.List.foreach(List.scala:333)
+	at org.openmole.core.workflow.execution.LocalExecutor.$anonfun$run$1(LocalExecutor.scala:58)
+	at org.openmole.core.workflow.execution.LocalExecutor.withRedirectedOutput(LocalExecutor.scala:122)
+	at org.openmole.core.workflow.execution.LocalExecutor.run(LocalExecutor.scala:54)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+Caused by: org.openmole.core.exception.UserBadDataError: Error when fetching netlogo output indicators:delta (indic "rank-corr-pop-closeness" "governance") 0 1 in variable (deltaRankCorrsPopCloseness: Double):
+ | org.nlogo.nvm.RuntimePrimitiveException: Division by zero.
+

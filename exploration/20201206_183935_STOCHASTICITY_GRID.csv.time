@@ -1,0 +1,23 @@
+[interrrupted:22 running, 49935/49957]
+06/12/2020 18h39:31; 13:20:46; 9978/10000; 26d14h; 1.53G up; 1.08G down; 559 finished; 1253 failed
+
+
+Error in model@2029241211 for context values {finalTime=30.0, govCostToAccess=0.6097742392404127, govEffectiveProba=0.1589467989001977, govParamMode=baseline, gravityDecay=209.16178807703062, gravityGamma=2.453972760794741, gravityInterRatio=0.223884369807362, id=44, nwExponent=4.217483770629975, nwGmax=0.019100154536253192, nwMode=governance, nwReinQuantile=0.5454033550550558, openmole$seed=-6030383663986361060, seed=555939.8479930887, synthRankSize=1.042429988291352}
+org.openmole.core.exception.InternalProcessingError: Error in model@2029241211 for context values {finalTime=30.0, govCostToAccess=0.6097742392404127, govEffectiveProba=0.1589467989001977, govParamMode=baseline, gravityDecay=209.16178807703062, gravityGamma=2.453972760794741, gravityInterRatio=0.223884369807362, id=44, nwExponent=4.217483770629975, nwGmax=0.019100154536253192, nwMode=governance, nwReinQuantile=0.5454033550550558, openmole$seed=-6030383663986361060, seed=555939.8479930887, synthRankSize=1.042429988291352}
+	at org.openmole.core.workflow.tools.InputOutputCheck$.$anonfun$perform$1(InputOutputCheck.scala:126)
+	at org.openmole.core.expansion.FromContext.apply(FromContext.scala:239)
+	at org.openmole.core.expansion.FromContext.from(FromContext.scala:240)
+	at org.openmole.core.workflow.task.Task.perform(Task.scala:109)
+	at org.openmole.core.workflow.task.Task.perform$(Task.scala:107)
+	at org.openmole.plugin.task.netlogo6.NetLogo6Task.perform(NetLogo6Task.scala:131)
+	at org.openmole.core.workflow.job.MoleJob.perform(MoleJob.scala:95)
+	at org.openmole.core.workflow.execution.LocalExecutor.$anonfun$run$2(LocalExecutor.scala:62)
+	at scala.collection.immutable.List.foreach(List.scala:333)
+	at org.openmole.core.workflow.execution.LocalExecutor.$anonfun$run$1(LocalExecutor.scala:58)
+	at org.openmole.core.workflow.execution.LocalExecutor.withRedirectedOutput(LocalExecutor.scala:122)
+	at org.openmole.core.workflow.execution.LocalExecutor.run(LocalExecutor.scala:54)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+Caused by: org.openmole.core.exception.UserBadDataError: Error when fetching netlogo output indicators:delta (indic "rank-corr-pop-closeness" "governance") 0 1 in variable (deltaRankCorrsPopCloseness: Double):
+ | org.nlogo.nvm.RuntimePrimitiveException: Division by zero.
+
+
