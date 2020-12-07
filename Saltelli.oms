@@ -117,16 +117,20 @@ val model = NetLogo6Task(workDirectory / "HEADLESS_CoevolGov.nlogo",cmds,embedWo
     id := 0
 )
 
-val purpose = "GSA_GRID"
+//val purpose = "GSA_GRID"
+val purpose = "GSA_LOCAL"
 //val purpose = "TEST"
 
-val env = EGIEnvironment("vo.complex-systems.eu")
-//val env = LocalEnvironment(5)
+//val env = EGIEnvironment("vo.complex-systems.eu")
+val env = LocalEnvironment(16)
+
+val resprefix = (((new java.text.SimpleDateFormat("yyyyMMdd_HHmmss")).format(new java.util.Date()))+"_"+purpose)
+val model_hook = CSVHook(workDirectory / "saltelli" / (resprefix+".csv"),arrayOnRow=true)
 
 SensitivitySaltelli(
-  evaluation = (model on env by 25),
-  //evaluation = (model on env),
-  sample = 10000,
+  //evaluation = (model on env by 20 hook model_hook),
+  evaluation = (model on env hook model_hook),
+  sample = 300,
   inputs = Seq(
     synthRankSize in (0.5,1.5),
     gravityGamma in (0.1,5.0),
@@ -145,4 +149,4 @@ SensitivitySaltelli(
     deltaRankCorrsPopAccessibility,deltaRankCorrsClosenessAccessibility,rankCorrPop,rankCorrCloseness,rankCorrAccessibility,
     diversityPop,diversityCloseness,diversityAccessibility,complexityPop,complexityCloseness,complexityAccessibility,
     governanceCostDiff,governanceAccessDiff,governanceProbas,governanceCollab,governanceLevel,networkCostBasline,networkCost)
-) hook (workDirectory / "saltelli" / (((new java.text.SimpleDateFormat("yyyyMMdd_HHmmss")).format(new java.util.Date()))+"_"+purpose))
+) hook (workDirectory / "saltelli" / resprefix)
