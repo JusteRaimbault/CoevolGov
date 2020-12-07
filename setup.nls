@@ -139,7 +139,7 @@ to setup:setup-cities
   
   ;;
   ; draw the boundary
-  if headless != true [
+  if global:headless? != true [
     crt 1 [setxy min-pxcor + (max-pxcor - min-pxcor) / 2 min-pycor set color green set pen-size 4 pen-down set heading 0 while [ycor < max-pycor][fd 1] die]
   ]
     
