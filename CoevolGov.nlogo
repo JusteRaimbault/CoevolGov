@@ -539,7 +539,7 @@ global:governance-effective-collab-proba
 global:governance-effective-collab-proba
 -1
 1
--0.5
+-0.45
 0.05
 1
 NIL
